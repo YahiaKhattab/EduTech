@@ -1,0 +1,51 @@
+/* Design tokens: the same values as the Penpot design system (01 Design system page). */
+:root {
+  /* Brand */
+  --brand: #5847C2;
+  --brand-hover: #46379E;
+  --brand-subtle: #F3F1FC;
+  --brand-muted: #E6E2F8;
+
+  /* Backgrounds */
+  --bg-canvas: #F7F7FA;
+  --bg-surface: #FFFFFF;
+  --bg-subtle: #EFEFF4;
+  --bg-disabled: #E2E2EA;
+
+  /* Text */
+  --text-primary: #1E1E2A;
+  --text-secondary: #4A4A59;
+  --text-muted: #666677;
+  --text-brand: #46379E;
+  --text-on-brand: #FFFFFF;
+  --text-disabled: #8A8A99;
+
+  /* Borders and icons */
+  --border-default: #E2E2EA;
+  --border-strong: #CDCDD8;
+  --border-focus: #6A5BD1;
+  --icon-default: #4A4A59;
+  --icon-muted: #8A8A99;
+
+  /* Status: background / foreground pairs. Never used without an icon and a word. */
+  --neutral-bg: #EFEFF4;  --neutral-fg: #4A4A59;
+  --info-bg: #EAF2FA;     --info-fg: #24557F;
+  --warning-bg: #FFF5E0;  --warning-fg: #7F5300;
+  --recheck-bg: #FFEFE6;  --recheck-fg: #943C0E;  --recheck-border: #C2541A;
+  --success-bg: #E8F5EE;  --success-fg: #21613B;
+  --danger-bg: #FDEDED;   --danger-fg: #9C2A22;   --danger-solid: #C0352B;
+
+  /* Type (Atkinson Hyperlegible Next: I / l / 1 and O / 0 stay distinct) */
+  --font: 'Atkinson Hyperlegible Next', 'Atkinson Hyperlegible', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --fs-display: 36px; --fs-h1: 28px; --fs-h2: 22px; --fs-h3: 18px;
+  --fs-body-l: 18px; --fs-body: 16px; --fs-small: 14px; --fs-caption: 12px;
+
+  /* Spacing on a 4 px base */
+  --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px; --s-6: 24px; --s-8: 32px; --s-12: 48px; --s-16: 64px;
+
+  /* Radius and shadow */
+  --r-sm: 6px; --r-md: 10px; --r-lg: 16px; --r-full: 999px;
+  --shadow: 0 8px 24px rgba(30, 30, 51, 0.12);
+
+  --content: 1200px;
+}
