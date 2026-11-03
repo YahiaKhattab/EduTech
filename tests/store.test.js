@@ -80,15 +80,16 @@ ok(A.sendSupportPlan('omar', { kind: 'Extra exercises', notifyParent: true }).ok
 ok(V.parent('ahmad').notifications[0].title === 'Support plan for comparing fractions', 'parent gets the support plan');
 ok(A.sendMessage('ahmad', 'sherin', 'Thank you!').ok && V.teacher().messages.length === 1, 'parent message reaches the teacher');
 
-console.log('\nGerman exam');
-A.submitExam('lina', 'deutsch-mein-tag', 1); A.runOCR('deutsch-mein-tag-lina');
+console.log('\nGerman exam (preloaded)');
+ok(V.exam('deutsch-mein-tag-lina').stage === 'read', "Lina's German exam is waiting for text verification");
 A.resolveWord('deutsch-mein-tag-lina', 1, 'Straße'); A.resolveWord('deutsch-mein-tag-lina', 2, 'Ich bin müde.'); A.resolveWord('deutsch-mein-tag-lina', 3, 'Brot mit Käse');
 ok(A.confirmText('deutsch-mein-tag-lina').ok, 'German text confirmed with ß and umlauts');
 ok(Object.values(V.exam('deutsch-mein-tag-lina').marks).reduce((s, m) => s + m.ai, 0) === 12, 'German exam graded 12 / 12');
 
 console.log('\nUndo and reset');
 ok(A.undo().ok, 'undo works');
-A.reset(); ok(Object.keys(S.state.exams).length === 0 && V.student('omar').toUpload.length === 1, 'reset restores the starting demo');
+ok(A.decideClassFlag('f-youssef', 'suggested').ok, "undo a class flag decision");
+A.reset(); ok(Object.keys(S.state.exams).join() === 'deutsch-mein-tag-lina' && V.student('omar').toUpload.length === 1, 'reset restores the starting demo');
 
 console.log('\n' + pass + ' passed, ' + failN + ' failed');
 process.exit(failN ? 1 : 0);

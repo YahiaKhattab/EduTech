@@ -7,13 +7,14 @@
   <meta name="description" content="EduTech: AI-assisted assessment and learning gap detection for Grades 1–5 (CSEN 909 course project, Team #30).">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@400;500;600;700&family=Kalam&family=Patrick+Hand&display=swap" rel="stylesheet">
 
   <link rel="stylesheet" href="css/tokens.css">
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/components.css">
   <link rel="stylesheet" href="css/student.css">
-  <!-- Part 2 adds: css/teacher.css · Part 3 adds: css/parent.css -->
+  <link rel="stylesheet" href="css/teacher.css">
+  <!-- Part 3 adds: css/parent.css -->
 </head>
 <body>
   <div id="app"></div>
@@ -37,7 +38,17 @@
   <script src="js/views/student/results.js"></script>
   <script src="js/views/student/progress.js"></script>
 
-  <!-- Teacher view (part 2) and parent view (part 3) are added here -->
+  <!-- Teacher view (part 2) -->
+  <script src="js/views/teacher/shared.js"></script>
+  <script src="js/views/teacher/home.js"></script>
+  <script src="js/views/teacher/verify.js"></script>
+  <script src="js/views/teacher/review.js"></script>
+  <script src="js/views/teacher/review-questions.js"></script>
+  <script src="js/views/teacher/review-gaps.js"></script>
+  <script src="js/views/teacher/review-history.js"></script>
+  <script src="js/views/teacher/gaps.js"></script>
+
+  <!-- Parent view (part 3) is added here -->
 
   <!-- Demo helpers and the app shell (always last) -->
   <script src="js/demo.js"></script>

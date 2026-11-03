@@ -1,8 +1,8 @@
 /* Demo helpers (not part of the product).
    1. Simulated OCR: a few seconds after a student sends an exam, its text is "read".
-   2. "Simulate teacher" menu: lets the student view be demonstrated before the teacher view exists,
-      and lets the video jump to a state quickly. Every step uses the same store actions the
-      teacher screens will use, so all rules still apply. */
+   2. "Shortcuts" menu: jumps Omar's Maths exam to the next stage (handy when recording the video,
+      or when showing one view without clicking through the other). Every step uses the same store
+      actions as the real screens, so all rules still apply. */
 (function () {
   'use strict';
   const { h } = UI;
@@ -26,6 +26,7 @@
   /* 2. Teacher shortcuts */
   const examId = 'maths-fractions-omar';
   const steps = [
+    { label: "Omar uploads his Maths exam (student)", when: ex => !ex, run: () => A.submitExam('omar', 'maths-fractions', 3) },
     { label: 'Verify text and let the AI grade', when: ex => ex && ex.stage === 'read', run: () => {
       store.views.exam(examId).answers.filter(a => !a.resolved).forEach(a => A.resolveWord(examId, a.q, a.doubt.options[0]));
       return A.confirmText(examId);
@@ -49,14 +50,14 @@
   UI.demoMenu = function demoMenu() {
     const ex = store.state.exams[examId];
     const wrap = h('div', { class: 'demo-menu' });
-    wrap.appendChild(h('button', { type: 'button', class: 'demo-btn', 'aria-expanded': String(open), onClick: e => { e.stopPropagation(); open = !open; UI.render(); } }, 'Simulate teacher ▾'));
+    wrap.appendChild(h('button', { type: 'button', class: 'demo-btn', 'aria-expanded': String(open), onClick: e => { e.stopPropagation(); open = !open; UI.render(); } }, 'Shortcuts ▾'));
     if (open) {
       const next = steps.find(s => s.when(ex));
       wrap.appendChild(h('div', { class: 'demo-menu__list', onClick: e => e.stopPropagation() },
-        h('div', { class: 'demo-menu__hint' }, ex ? "Omar's Maths exam · stage: " + ex.stage : "Upload Omar's Maths exam first."),
+        h('div', { class: 'demo-menu__hint' }, ex ? "Omar's Maths exam · stage: " + ex.stage : "Omar's Maths exam is not uploaded yet."),
         steps.map(s => h('button', { type: 'button', disabled: s !== next, onClick: () => {
           open = false; const r = s.run();
-          UI.toast(r && r.ok === false ? r.reason : 'Teacher step done: ' + s.label.toLowerCase() + '.', { tone: r && r.ok === false ? 'recheck' : 'info' });
+          UI.toast(r && r.ok === false ? r.reason : 'Done: ' + s.label.charAt(0).toLowerCase() + s.label.slice(1) + '.', { tone: r && r.ok === false ? 'recheck' : 'info' });
           UI.render();
         } }, s.label))));
     }

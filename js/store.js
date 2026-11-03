@@ -13,7 +13,7 @@
 (function (root) {
   'use strict';
   const Data = (typeof module !== 'undefined' && module.exports) ? require('./data.js') : root.EduTechData;
-  const KEY = 'edutech-demo-v1';
+  const KEY = 'edutech-demo-v2';   // bump when the demo data changes, so old saved data is ignored
   const clone = o => JSON.parse(JSON.stringify(o));
 
   let state = null;
@@ -28,7 +28,14 @@
   function emit() { listeners.forEach(fn => { try { fn(state); } catch (e) { console.error(e); } }); }
   if (root.addEventListener) root.addEventListener('storage', e => { if (e.key === KEY) { state = load() || clone(Data.seed); emit(); } });
 
-  function init() { state = load() || clone(Data.seed); return state; }
+  /* A fresh demo: the seed data plus the preloaded uploads. */
+  function fresh() {
+    state = clone(Data.seed);
+    (state.preload || []).forEach(p => { submitExam(p.studentId, p.templateId, p.pages, true); if (p.read) runOCR(p.templateId + '-' + p.studentId, true); });
+    past = [];
+    return state;
+  }
+  function init() { state = load() || fresh(); save(); return state; }
   function commit(label) { save(); emit(); return { ok: true, label }; }
   function fail(reason) { return { ok: false, reason }; }
   function remember() { past.push(JSON.stringify(state)); if (past.length > 30) past.shift(); }
@@ -44,6 +51,7 @@
     return { mark: row[0], feedback: row[1], mistake: row[2] || null, unsure: false };
   }
   function notify(to, title, body, link) { state.notifications.unshift({ id: 'n' + Date.now() + Math.random().toString(16).slice(2, 6), to, title, body, at: clock(), read: false, link: link || null }); }
+  const UI_pages = n => n + (n === 1 ? ' page' : ' pages');
   const parentsOf = studentId => Object.values(state.users).filter(u => u.role === 'parent' && u.childId === studentId).map(u => u.id);
   const finalMark = m => (m.teacher !== null && m.teacher !== undefined) ? m.teacher : m.ai;
   const score = ex => Object.values(ex.marks).reduce((s, m) => s + finalMark(m), 0);
@@ -68,7 +76,7 @@
   }
 
   /* ---------- student actions ---------- */
-  function submitExam(studentId, templateId, pages) {
+  function submitExam(studentId, templateId, pages, quiet) {
     const a = state.assignments.find(x => x.studentId === studentId && x.templateId === templateId);
     if (!a) return fail('No such exam for this student.');
     const id = templateId + '-' + studentId;
@@ -81,14 +89,14 @@
       marks: null, gaps: [], practiceApproved: false, overallFeedback: t.overallFeedback,
       corrections: [], released: null, releasedAt: null, changeNotes: []
     };
-    notify('sherin', state.users[studentId].name + ' uploaded an exam', t.subject + ' · ' + t.title + ' · ' + (pages || 3) + ' pages', { view: 'teacher-verify', examId: id });
-    return commit('submitExam');
+    notify('sherin', state.users[studentId].name + ' uploaded an exam', t.subject + ' · ' + t.title + ' · ' + UI_pages(pages || 3), { view: 'teacher-verify', examId: id });
+    return quiet ? { ok: true } : commit('submitExam');
   }
   /* Simulated OCR finishing (the screen calls this after a short delay). */
-  function runOCR(examId) {
+  function runOCR(examId, quiet) {
     const ex = exam(examId); if (!ex || ex.stage !== 'sent') return fail('Nothing to read.');
     remember(); ex.answers.forEach(a => { a.text = a.ocr; }); ex.stage = 'read';
-    return commit('runOCR');
+    return quiet ? { ok: true } : commit('runOCR');
   }
 
   /* ---------- teacher: verify text (before grading) ---------- */
@@ -121,7 +129,8 @@
     const ex = exam(examId); if (!ex || !ex.marks) return fail('Not graded yet.');
     const qi = qInfo(ex, q); const v = Number(value);
     if (!Number.isFinite(v) || v < 0 || v > qi.max) return fail('Enter a mark from 0 to ' + qi.max + '.');
-    remember(); ex.marks[q].teacher = v; return commit('setTeacherMark');
+    const m = ex.marks[q]; if ((m.teacher != null ? m.teacher : m.ai) === v) return { ok: true, unchanged: true };   // nothing to change or undo
+    remember(); m.teacher = v; return commit('setTeacherMark');
   }
   function setFeedback(examId, q, text) { const ex = exam(examId); if (!ex || !ex.marks) return fail('Not graded yet.'); remember(); ex.marks[q].feedback = text; return commit('setFeedback'); }
   function setOverallFeedback(examId, text) { const ex = exam(examId); if (!ex) return fail('No exam.'); remember(); ex.overallFeedback = text; return commit('setOverallFeedback'); }
@@ -208,6 +217,7 @@
   function decideClassFlag(flagId, decision, reason) {
     const f = state.classFlags.find(x => x.id === flagId); if (!f) return fail('No such flag.');
     if (decision === 'dismissed' && !(reason && reason.trim())) return fail('Give a reason for dismissing.');
+    if (!['confirmed', 'dismissed', 'suggested'].includes(decision)) return fail('Unknown decision.');   // 'suggested' = undo
     remember(); f.status = decision; f.reason = decision === 'dismissed' ? reason.trim() : null; return commit('decideClassFlag');
   }
   function sendSupportPlan(studentId, plan) {
@@ -228,7 +238,7 @@
   function markRead(userId) { remember(); state.notifications.forEach(n => { if (n.to === userId) n.read = true; }); return commit('markRead'); }
   function markNotificationRead(id) { const n = state.notifications.find(x => x.id === id); if (!n || n.read) return fail('Already read.'); n.read = true; return commit('markNotificationRead'); }
   function undo() { if (!past.length) return fail('Nothing to undo.'); state = JSON.parse(past.pop()); return commit('undo'); }
-  function reset() { past = []; state = clone(Data.seed); return commit('reset'); }
+  function reset() { fresh(); return commit('reset'); }
 
   /* ---------- the student-safe snapshot (R1) ---------- */
   function snapshot(ex) {

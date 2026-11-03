@@ -126,11 +126,14 @@
   ];
 
   const seed = {
-    version: 1,
+    version: 2,
     users,
     templates: { 'maths-fractions': fractionsTemplate, 'deutsch-mein-tag': germanTemplate },
     assignments, history, otherQueue, classFlags, classMistakes,
     exams: {},          // live exams, created by uploads (see store.js)
+    preload: [          // exams already uploaded when the demo starts (so the teacher has a German exam to verify)
+      { studentId: 'lina', templateId: 'deutsch-mein-tag', pages: 1, read: true }
+    ],
     plans: [            // support plans
       { id: 'plan-carry', studentId: 'omar', topic: 'Carrying in multiplication', kind: 'Extra exercises', sentAt: '2026-09-23', status: 'finished', notifyParent: false }
     ],

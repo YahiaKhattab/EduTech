@@ -62,9 +62,16 @@
   };
 
   /* Modal dialog. Returns { close }. Escape and the backdrop close it; focus goes in and comes back. */
+  const openDialogs = new Set();
+  window.addEventListener('hashchange', () => openDialogs.forEach(close => close()));   // a new page never keeps an old dialog
+
   UI.dialog = function dialog(build) {
     const before = document.activeElement;
-    const close = () => { backdrop.remove(); document.removeEventListener('keydown', onKey); if (before && before.focus) before.focus(); };
+    const close = () => {
+      if (!openDialogs.delete(close)) return;   // already closed
+      backdrop.remove(); document.removeEventListener('keydown', onKey); if (before && before.isConnected && before.focus) before.focus();
+    };
+    openDialogs.add(close);
     const onKey = e => { if (e.key === 'Escape') close(); };
     const box = h('div', { class: 'dialog', role: 'dialog', 'aria-modal': 'true' });
     const backdrop = h('div', { class: 'dialog-backdrop', onClick: e => { if (e.target === backdrop) close(); } }, box);

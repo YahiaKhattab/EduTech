@@ -39,7 +39,17 @@ GitHub Pages on a *private* repository needs GitHub Pro (free with the GitHub St
 
 Omar (Grade 4) uploads his Maths exam *Fractions and Word Problems*. The OCR misreads his "7/8" as "1/8", the AI grades 18/25 (72%), and Mrs. Sherin confirms and releases it. Later she spots the misread, corrects it, re-checks the three results built on it, and approves a note: Omar's grade becomes 20/25 (80%), and his parent, Mr. Ahmad, is told what changed.
 
-Until the teacher view is added, use **Simulate teacher** in the demo bar to move Omar's exam through the teacher steps.
+### Try it as the teacher
+
+1. Click **Reset demo**, then **Teacher**. Lina's German exam is already waiting.
+2. Switch to **Student** and upload Omar's Maths exam (or use **Shortcuts → Omar uploads his Maths exam**). After a few seconds it is read.
+3. As **Teacher**: *Verify text* → pick the right reading for the 3 doubtful words → *Confirm text and continue*. The AI grades it.
+4. *Grade review*: check the marks, then on **Gaps and flags** confirm or dismiss each item → *Confirm grades and release*.
+5. Open the exam again (**View**), select **Q5**, click *Edit extracted text* and change `1/8` to `7/8`. The impact dialog shows the 3 results built on it. Choose *Re-check now*.
+6. Change Q5 to 2 / 2, keep or remove the weakness and the red flag (with a reason), then *Notify student of change* → *Approve and send*.
+7. **Class gaps**: confirm or dismiss Youssef's red flag, and send Omar a support plan (the parent is told too).
+
+The **Shortcuts** menu in the demo bar jumps Omar's exam to the next stage, using the same actions as the screens. It is handy when recording the video.
 
 ## Project structure
 
@@ -50,12 +60,14 @@ css/
   base.css              page layout, demo bar, navigation
   components.css        buttons, chips, cards, fields, dialogs, toasts
   student.css           student screens
+  teacher.css           teacher screens
 js/
   data.js               demo data (exams, OCR readings, simulated AI)
   store.js              shared state, all actions and rules
   ui/                   small helpers: dom, icons, format, components, router
   views/student/        home, upload, tracker, results, progress
-  demo.js               simulated OCR delay and "Simulate teacher" menu
+  views/teacher/        shared (helpers), home, verify, review (+ questions, gaps, history tabs), gaps
+  demo.js               simulated OCR delay and the "Shortcuts" menu
   app.js                app shell (demo bar, navigation, page)
 tests/
   store.test.js         plays the whole story through the store
@@ -68,7 +80,7 @@ With Node.js installed: `node tests/store.test.js` (checks the full story and al
 ## Progress
 
 - [x] Part 1 · Shared state and student view
-- [ ] Part 2 · Teacher view
+- [x] Part 2 · Teacher view
 - [ ] Part 3 · Parent view
 
 ## AI use
