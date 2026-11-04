@@ -18,7 +18,7 @@
 .summary__count { display: block; font-size: var(--fs-h1); font-weight: 700; line-height: 1.2; }
 
 /* Tables */
-.table-wrap { overflow-x: auto; }
+.table-wrap { overflow-x: auto; position: relative; }   /* relative: hidden labels inside stay inside the scroll area */
 .table { width: 100%; border-collapse: collapse; }
 .table th { text-align: left; font-size: var(--fs-small); color: var(--text-muted); font-weight: 600; background: var(--bg-subtle); padding: 10px 16px; white-space: nowrap; }
 .table td { padding: 12px 16px; border-top: 1px solid var(--border-default); vertical-align: middle; }

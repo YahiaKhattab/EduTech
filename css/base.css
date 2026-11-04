@@ -83,7 +83,7 @@ img { max-width: 100%; display: block; }
 .icon-btn__dot { position: absolute; top: 8px; right: 9px; width: 10px; height: 10px; border-radius: 50%; background: var(--brand); border: 2px solid var(--bg-surface); }
 
 /* ---------- Page body ---------- */
-.page { max-width: var(--content); margin: 0 auto; padding: var(--s-8) var(--s-4) var(--s-16); display: grid; gap: var(--s-6); }
+.page { max-width: var(--content); margin: 0 auto; padding: var(--s-8) var(--s-4) var(--s-16); display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-6); }   /* minmax(0, …): long content wraps instead of widening the page */
 .page__head { display: flex; align-items: flex-end; gap: var(--s-4); flex-wrap: wrap; }
 .page__head > :first-child { flex: 1; min-width: 240px; }
 .cols { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: var(--s-6); align-items: start; }
@@ -95,7 +95,7 @@ img { max-width: 100%; display: block; }
 .back-link { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; text-decoration: none; color: var(--text-brand); justify-self: start; }
 
 @media (max-width: 960px) {
-  .cols { grid-template-columns: 1fr; }
+  .cols { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 760px) {
   .nav { grid-template-columns: 1fr auto; row-gap: 0; padding-top: var(--s-2); }

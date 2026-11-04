@@ -1,0 +1,59 @@
+/* Parent view (prototype page "04 Parent"): the same components as the other views, plus the child switch,
+   the support box, exam percentages, the topic table, support plans and messages. */
+
+/* Nav: child switch and the parent's avatar */
+.child-switch { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px 6px 6px; border-radius: var(--r-full); border: 0; background: var(--bg-subtle); font-weight: 600; font-size: var(--fs-small); cursor: pointer; }
+.child-switch:hover { background: var(--brand-subtle); }
+.child-switch__dot { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--brand-muted); color: var(--text-brand); font-size: var(--fs-caption); }
+.parent .nav__user .avatar { background: var(--info-bg); color: var(--info-fg); font-size: var(--fs-small); }
+
+/* Home: the teacher's support concern (an alert, so it may use the saturated red) */
+.callout--danger { background: var(--danger-bg); border: 1.5px solid var(--danger-solid); }
+.callout--danger .badge { background: var(--bg-surface); }
+.home-tip { display: flex; gap: 10px; align-items: flex-start; padding: 12px 16px; border-radius: var(--r-md); background: var(--bg-surface); max-width: 820px; }
+
+/* Home: recent exams */
+.exam-pct { font-size: var(--fs-h2); font-weight: 700; min-width: 64px; text-align: right; }
+.row-chevron { display: inline-flex; color: var(--icon-default); }
+.row-chevron--off { color: var(--border-strong); }
+.list-row--waiting { cursor: default; }
+
+/* Results: marks by topic and the support plan */
+.card--flush > .card__title { padding: 20px 24px 12px; font-size: var(--fs-h3); }
+.topic-row { display: grid; grid-template-columns: minmax(130px, 1.2fr) minmax(80px, 2fr) 48px 120px; align-items: center; gap: var(--s-4); padding: 12px 24px; border-top: 1px solid var(--border-default); }
+.topic-row__bar .bar { margin: 0; }
+.checklist { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.checklist li { display: flex; gap: 10px; align-items: flex-start; }
+.checklist li > span:first-child { padding-top: 2px; flex: none; }
+
+/* Progress: weak spots and support plans */
+.spot-row { padding: 12px 14px; gap: var(--s-3); }
+.spot-row .pill { flex: none; }
+.plan-row { display: flex; align-items: center; gap: var(--s-4); padding: 14px 16px; border-radius: var(--r-md); background: var(--bg-subtle); }
+.plan-row__date { min-width: 52px; font-size: var(--fs-small); }
+
+/* Messages with the teacher (opened from a reply) */
+.thread { display: grid; gap: 10px; max-height: 50vh; overflow-y: auto; }
+.bubble { max-width: 92%; padding: 10px 14px; border-radius: 14px 14px 14px 4px; background: var(--bg-subtle); display: grid; gap: 2px; justify-self: start; }
+.bubble--mine { background: var(--brand-subtle); border-radius: 14px 14px 4px 14px; justify-self: end; }
+.bubble p { margin: 0; }
+
+@media (max-width: 760px) {
+  .child-switch { font-size: 0; gap: 2px; padding-right: 8px; }   /* just the initial on small screens */
+  .parent .nav__user span.avatar { display: grid; }                 /* keep "MA" (base.css hides the name text) */
+}
+@media (max-width: 640px) {
+  .parent .list-row { flex-wrap: wrap; row-gap: 8px; }
+  .parent .list-row > .grow { flex-basis: calc(100% - 72px); }
+  .parent .list-row > .chip { margin-left: 64px; }
+  .parent .list-row > .exam-pct { margin-left: auto; min-width: 0; }
+  .parent .list-row > .chip + .exam-pct { margin-left: auto; }
+  .parent .callout { flex-wrap: wrap; padding: 16px; }
+  .parent .callout > .grow { flex-basis: calc(100% - 72px); }
+  .topic-row { grid-template-columns: 1fr auto; row-gap: 6px; padding: 12px 16px; }
+  .topic-row__bar { grid-column: 1 / -1; grid-row: 2; }
+  .topic-row > :last-child { grid-column: 1 / -1; }
+  .plan-row { flex-wrap: wrap; row-gap: 6px; }
+  .plan-row > .grow { flex-basis: calc(100% - 70px); }
+  .bubble { max-width: 100%; }
+}

@@ -6,9 +6,9 @@
   'use strict';
 
   const users = {
-    omar: { id: 'omar', role: 'student', name: 'Omar Khaled', first: 'Omar', grade: 4, className: '4B', teacherId: 'sherin' },
+    omar: { id: 'omar', role: 'student', name: 'Omar Khaled', first: 'Omar', he: 'He', his: 'his', grade: 4, className: '4B', teacherId: 'sherin' },
     sherin: { id: 'sherin', role: 'teacher', name: 'Mrs. Sherin', className: '4B', classSize: 18 },
-    ahmad: { id: 'ahmad', role: 'parent', name: 'Mr. Ahmad', childId: 'omar' },
+    ahmad: { id: 'ahmad', role: 'parent', name: 'Mr. Ahmad', initials: 'MA', childId: 'omar' },
     lina: { id: 'lina', role: 'student', name: 'Lina Hassan', first: 'Lina', grade: 4, className: '4B' },
     nour: { id: 'nour', role: 'student', name: 'Nour Ibrahim', first: 'Nour', grade: 4, className: '4B' },
     youssef: { id: 'youssef', role: 'student', name: 'Youssef Adel', first: 'Youssef', grade: 4, className: '4B' },
@@ -50,9 +50,14 @@
     conclusions: {
       weakness: { label: 'Comparing fractions', topic: 'Comparing fractions' },
       recurring: { label: 'Thinks a bigger denominator means a bigger fraction', basedOn: [4, 7], alsoSeen: 'Also seen in the unit test on 9 October and in 3 classmates this week.' },
-      redFlag: { label: 'Needs additional support in fractions', childLabel: 'Extra help with fractions', extra: 'plus the same mistake in the 9 October unit test' }
+      redFlag: { label: 'Needs additional support in fractions', childLabel: 'Extra help with fractions', extra: 'plus the same mistake in the 9 October unit test',
+        /* what the parent reads (Parent / Home in the prototype) */
+        parentLabel: 'needs extra support in fractions', topic: 'fractions',
+        parentWhy: 'found comparing fractions with different bottom numbers difficult in his last two Maths exams' }
     },
-    overallFeedback: 'Great job with multiplication, Omar! When you compare fractions, first make the bottom numbers the same. Then compare the top numbers. You are almost there!'
+    overallFeedback: 'Great job with multiplication, Omar! When you compare fractions, first make the bottom numbers the same. Then compare the top numbers. You are almost there!',
+    /* Parent view: one idea for practising the weak topic at home. */
+    homeTip: { 'Comparing fractions': 'ask Omar which is bigger, 1/2 or 3/4 of a pizza, and to explain why. Making the bottom numbers the same is the trick he is practising.' }
   };
 
   /* Omar's answers as written (truth) and as the OCR read them. */
@@ -126,7 +131,7 @@
   ];
 
   const seed = {
-    version: 2,
+    version: 3,
     users,
     templates: { 'maths-fractions': fractionsTemplate, 'deutsch-mein-tag': germanTemplate },
     assignments, history, otherQueue, classFlags, classMistakes,
@@ -135,7 +140,7 @@
       { studentId: 'lina', templateId: 'deutsch-mein-tag', pages: 1, read: true }
     ],
     plans: [            // support plans
-      { id: 'plan-carry', studentId: 'omar', topic: 'Carrying in multiplication', kind: 'Extra exercises', sentAt: '2026-09-23', status: 'finished', notifyParent: false }
+      { id: 'plan-carry', studentId: 'omar', topic: 'Carrying in multiplication', kind: 'Extra exercises', practice: '4 practice questions', sentAt: '2026-09-23', status: 'finished', solved: true, notifyParent: true }
     ],
     notifications: [],
     messages: []

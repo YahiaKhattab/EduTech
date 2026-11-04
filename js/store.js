@@ -13,7 +13,7 @@
 (function (root) {
   'use strict';
   const Data = (typeof module !== 'undefined' && module.exports) ? require('./data.js') : root.EduTechData;
-  const KEY = 'edutech-demo-v2';   // bump when the demo data changes, so old saved data is ignored
+  const KEY = 'edutech-demo-v3';   // bump when the demo data changes, so old saved data is ignored
   const clone = o => JSON.parse(JSON.stringify(o));
 
   let state = null;
@@ -205,7 +205,10 @@
     if (openRechecks(ex)) return fail('Resolve the ' + openRechecks(ex) + ' re-check(s) first.');                                 // R5
     remember();
     const before = ex.released; const after = snapshot(ex); const note = (text && text.trim()) || draftNote(examId);
-    after.changeNote = { text: note, fromScore: before.score, toScore: after.score, fromPct: before.pct, toPct: after.pct, at: clock() };
+    const since = ex.changeNotes.length ? ex.changeNotes[ex.changeNotes.length - 1].at : ex.releasedAt;
+    const fixes = ex.corrections.filter(c => c.phase === 'after release' && c.at > since).map(c => ({ q: c.q, read: c.from, written: c.to }));   // what the scanner misread
+    const marks = after.questions.filter(q => q.mark !== before.questions.find(b => b.q === q.q).mark).map(q => ({ q: q.q, from: before.questions.find(b => b.q === q.q).mark, to: q.mark }));
+    after.changeNote = { text: note, fromScore: before.score, toScore: after.score, fromPct: before.pct, toPct: after.pct, fixes, marks, at: clock() };
     ex.changeNotes.push(after.changeNote); ex.released = after; ex.stage = 'released';
     const t = tpl(ex); const st = state.users[ex.studentId];
     notify(ex.studentId, 'Mrs. Sherin took a second look', 'Your ' + t.subject + ' score changed from ' + before.score + ' to ' + after.score + '. Tap to see what changed.', { view: 'student-results', examId });
@@ -229,11 +232,18 @@
     if (p.notifyParent) parentsOf(studentId).forEach(pid => notify(pid, 'Support plan for ' + p.topic.toLowerCase(), 'Mrs. Sherin sent ' + state.users[studentId].first + ' ' + p.practice + '. She will check again ' + p.followUp + '.', { view: 'parent-progress' }));
     return commit('sendSupportPlan');
   }
-  function sendMessage(fromId, toId, text) {
+  /* Messages between a parent and the teacher. opts: { examId, replyTo } */
+  function sendMessage(fromId, toId, text, opts) {
+    opts = opts || {};
+    const from = state.users[fromId], to = state.users[toId];
+    if (!from || !to) return fail('Unknown sender or receiver.');
     if (!(text && text.trim())) return fail('Write a message first.');
-    remember(); state.messages.push({ from: fromId, to: toId, text: text.trim(), at: clock() });
-    notify(toId, 'Message from ' + state.users[fromId].name, text.trim().slice(0, 90), { view: 'teacher-home' });
-    return commit('sendMessage');
+    remember();
+    const m = { id: 'm' + Date.now() + Math.random().toString(16).slice(2, 6), from: fromId, to: toId, text: text.trim(), at: clock(), examId: opts.examId || null, replyTo: opts.replyTo || null };
+    state.messages.push(m);
+    const who = from.role === 'parent' ? from.name + ' (' + state.users[from.childId].first + "'s parent)" : from.name;
+    notify(toId, (opts.replyTo ? 'Reply from ' : 'Message from ') + who, m.text.slice(0, 90) + (m.text.length > 90 ? '…' : ''), { view: to.role + '-home', messageId: m.id });
+    return Object.assign(commit('sendMessage'), { id: m.id });
   }
   function markRead(userId) { remember(); state.notifications.forEach(n => { if (n.to === userId) n.read = true; }); return commit('markRead'); }
   function markNotificationRead(id) { const n = state.notifications.find(x => x.id === id); if (!n || n.read) return fail('Already read.'); n.read = true; return commit('markNotificationRead'); }
@@ -255,8 +265,10 @@
       examId: ex.id, subject: t.subject, title: t.title, score: sc, max: t.max, pct: Math.round(sc / t.max * 100),
       questions, topics, strengths: Object.keys(topics).filter(k => topics[k].got === topics[k].max),
       weakness: w ? { label: w.label, questions: w.basedOn.slice() } : null,
-      redFlag: rf ? { label: rf.label, childLabel: rf.childLabel } : null,
-      practice: ex.practiceApproved ? t.practice : null, overallFeedback: ex.overallFeedback, changeNote: null
+      redFlag: rf ? { label: rf.label, childLabel: rf.childLabel, questions: rf.basedOn.slice(), note: rf.note || null,
+        parentLabel: t.conclusions.redFlag.parentLabel, parentWhy: t.conclusions.redFlag.parentWhy, topic: t.conclusions.redFlag.topic } : null,
+      practice: ex.practiceApproved ? t.practice : null, overallFeedback: ex.overallFeedback, changeNote: null,
+      homeTip: w && t.homeTip ? (t.homeTip[w.label] || null) : null
     };
   }
 
@@ -272,10 +284,15 @@
         plans: state.plans.filter(p => p.studentId === studentId), notifications: state.notifications.filter(n => n.to === studentId) };
     },
     parent(parentId) {
-      const p = state.users[parentId]; const s = views.student(p.childId);
-      const released = s.exams.filter(e => e.results).map(e => e.results);
-      return { user: p, child: state.users[p.childId], exams: s.exams.map(e => ({ examId: e.examId, subject: e.subject, title: e.title, status: e.results ? 'Checked' : 'Mrs. Sherin is checking it', results: e.results })),
-        redFlags: released.filter(r => r.redFlag).map(r => Object.assign({ examId: r.examId }, r.redFlag)), history: s.history, plans: s.plans,
+      const p = state.users[parentId]; const child = state.users[p.childId]; const s = views.student(p.childId);
+      const status = e => e.stage === 'released' ? 'Ready' : e.stage === 'recheck' ? 'Second look' : 'Teacher checking';
+      const exams = s.exams.map(e => ({ examId: e.examId, subject: e.subject, title: e.title, stage: e.stage, status: status(e), uploadedAt: e.uploadedAt, releasedAt: state.exams[e.examId].releasedAt || null,
+        date: state.templates[e.examId.slice(0, -(p.childId.length + 1))].date, results: e.results }));                  // R1: results only after release
+      const released = exams.filter(e => e.results).map(e => e.results);
+      return { user: p, child, teacher: state.users[child.teacherId], exams,
+        redFlags: released.filter(r => r.redFlag).map(r => Object.assign({ examId: r.examId }, r.redFlag)),
+        history: s.history, plans: s.plans.filter(x => x.notifyParent),                                                    // only plans the teacher chose to share
+        messages: state.messages.filter(m => m.from === parentId || m.to === parentId),
         notifications: state.notifications.filter(n => n.to === parentId) };
     },
     teacher() {
@@ -287,7 +304,7 @@
       const rows = live.concat(others).sort((a, b) => order[a.status] - order[b.status]);
       const counts = { 'To review': 0, 'Re-check needed': 0, 'Reviewed': 12 }; rows.forEach(r => { counts[r.status] = (counts[r.status] || 0) + 1; });
       const liveFlags = Object.values(state.exams).filter(e => e.stage === 'released' || e.stage === 'recheck').flatMap(e => e.gaps.filter(g => g.kind === 'redflag').map(g => ({ id: e.id + ':redflag', studentId: e.studentId, label: g.label, evidence: 'Questions ' + g.basedOn.join(', ') + (g.note ? ' · ' + g.note : ''), status: g.recheck ? 'recheck' : g.status, live: true, examId: e.id })));
-      return { rows, counts, classFlags: liveFlags.concat(state.classFlags), classMistakes: state.classMistakes, notifications: state.notifications.filter(n => n.to === 'sherin'), messages: state.messages.filter(m => m.to === 'sherin') };
+      return { rows, counts, classFlags: liveFlags.concat(state.classFlags), classMistakes: state.classMistakes, notifications: state.notifications.filter(n => n.to === 'sherin'), messages: state.messages.filter(m => m.to === 'sherin' || m.from === 'sherin') };
     },
     exam(examId) { return exam(examId) ? clone(exam(examId)) : null; },     // teacher detail view
     openRechecks(examId) { return exam(examId) ? openRechecks(exam(examId)) : 0; }

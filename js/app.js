@@ -51,19 +51,21 @@
   UI.openNotification = function (n) {
     bellOpen = false;
     if (!n.read) store.actions.markNotificationRead(n.id);
+    if (UI.onNotification && UI.onNotification(n)) return;   // a view can handle it itself (e.g. the parent opens a message)
     const target = UI.linkFor(n.link); if (target) UI.go(target); else render();
   };
 
   function nav(role, path) {
     const r = ROLES.find(x => x.id === role); const user = store.state.users[r.user];
-    const initials = user.name.replace(/^(Mrs?\.|Ms\.)\s*/, '').split(' ').map(w => w[0]).join('').slice(0, 2);
+    const initials = user.initials || user.name.replace(/^(Mrs?\.|Ms\.)\s*/, '').split(' ').map(w => w[0]).join('').slice(0, 2);
     return h('header', { class: 'nav' },
       h('a', { class: 'nav__logo', href: '#/' + role + '/home' }, h('span', { class: 'nav__mark' }, icon('book', 20)), 'EduTech',
         role !== 'student' ? h('span', { class: 'nav__role' }, r.label) : null),
       h('nav', { class: 'nav__links', 'aria-label': 'Main' }, NAV[role].map(([label, ic, href, paths]) =>
         h('a', { class: 'nav__link', href, 'aria-current': paths.includes(path) ? 'page' : null }, icon(ic, 20), label))),
-      h('div', { class: 'nav__user' }, role === 'student' ? notificationsButton(user.id) : null,
-        h('span', { class: 'avatar' }, role === 'student' ? user.first[0] : initials), h('span', null, role === 'student' ? user.first : user.name)));
+      role === 'parent' ? h('div', { class: 'nav__user' }, UI.childSwitch ? UI.childSwitch(user) : null, h('span', { class: 'avatar', title: user.name, 'aria-label': user.name }, initials))
+        : h('div', { class: 'nav__user' }, role === 'student' ? notificationsButton(user.id) : null,
+          h('span', { class: 'avatar' }, role === 'student' ? user.first[0] : initials), h('span', null, role === 'student' ? user.first : user.name)));
   }
 
   const root = document.getElementById('app');

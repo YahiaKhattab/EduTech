@@ -99,6 +99,9 @@ button.list-row { cursor: pointer; font: inherit; }
 /* ---------- Popover (notifications panel) ---------- */
 .popover { position: absolute; right: 0; top: calc(100% + 8px); width: min(400px, calc(100vw - 32px)); z-index: 40; background: var(--bg-surface); border: 1px solid var(--border-default); border-radius: var(--r-lg); box-shadow: var(--shadow); padding: var(--s-4); display: grid; gap: var(--s-2); }
 .popover__head { display: flex; align-items: center; justify-content: space-between; padding: 0 var(--s-2) var(--s-2); }
+/* Quoted text (what the student was told, the message being answered) */
+.quote { margin: 8px 0 0; padding: 10px 14px; border-left: 3px solid var(--border-strong); background: var(--bg-subtle); border-radius: 0 var(--r-md) var(--r-md) 0; }
+.callout--recheck .quote { border-left-color: var(--recheck-border); background: var(--bg-surface); }
 .link-btn { border: 0; background: none; color: var(--text-brand); font-weight: 600; cursor: pointer; padding: 4px; font-size: var(--fs-small); }
 
 /* ---------- Progress bar ---------- */

@@ -13,6 +13,7 @@ console.log('\nStudent uploads');
 ok(V.student('omar').toUpload.length === 1, 'Omar has one exam to upload');
 ok(A.submitExam('omar', 'maths-fractions', 3).ok, 'submit works');
 ok(V.student('omar').exams[0].status === 'Sent', 'student sees "Sent"');
+ok(V.parent('ahmad').exams[0].status === 'Teacher checking' && V.parent('ahmad').exams[0].results === null, 'R1: parent sees "Teacher checking" and no grade');
 ok(V.teacher().notifications[0].title.includes('Omar Khaled uploaded'), 'teacher is notified of the upload');
 ok(A.runOCR(ID).ok && V.student('omar').exams[0].status === 'Read', 'after OCR the student sees "Read"');
 
@@ -44,6 +45,8 @@ ok(!('ai' in sv.results.questions[0]) && !('aiFeedback' in sv.results.questions[
 let pv = V.parent('ahmad');
 ok(pv.redFlags.length === 1 && pv.exams.find(e => e.examId === ID).results.pct === 72, 'parent sees 72% and the confirmed red flag');
 ok(pv.notifications[0].title === 'Maths results released', 'parent is notified');
+ok(pv.exams[0].results.homeTip && pv.exams[0].results.redFlag.parentLabel === 'needs extra support in fractions', 'parent gets the home tip and the parent wording of the red flag');
+ok(pv.plans.length === 1 && pv.plans[0].status === 'finished', 'parent sees only the shared (finished) September plan');
 
 console.log('\nCorrection after release (R4, R5)');
 const r = A.correctText(ID, 5, '3/8, 1/2, 7/8');
@@ -51,6 +54,7 @@ ok(r.ok && JSON.stringify(r.affected) === '["Question 5 mark","Weakness","Red fl
 ok(V.openRechecks(ID) === 3, '3 re-checks open');
 sv = V.student('omar').exams[0];
 ok(sv.status === 'Second look' && sv.results === null, 'student sees "Second look" and no grade');
+ok(V.parent('ahmad').exams[0].status === 'Second look' && V.parent('ahmad').exams[0].results === null && V.parent('ahmad').redFlags.length === 0, 'parent sees "Second look", no grade and no flag');
 ok(V.student('omar').notifications[0].title === 'Your teacher is taking a second look', 'student is told about the second look');
 ok(V.teacher().rows[0].status === 'Re-check needed', 'teacher queue shows Re-check needed first');
 ok(!A.approveNote(ID, '').ok, 'R5: note refused while re-checks are open');
@@ -66,6 +70,7 @@ ok(A.approveNote(ID, note).ok, 'approve and send the note');
 sv = V.student('omar').exams[0];
 ok(sv.status === 'Ready' && sv.results.score === 20 && sv.results.pct === 80, 'student sees 20 / 25 (80%)');
 ok(sv.results.changeNote && sv.results.changeNote.fromScore === 18, 'student sees what changed');
+ok(JSON.stringify(sv.results.changeNote.fixes) === '[{"q":5,"read":"3/8, 1/2, 1/8","written":"3/8, 1/2, 7/8"}]' && JSON.stringify(sv.results.changeNote.marks) === '[{"q":5,"from":0,"to":2}]', 'the note records the misread and the changed mark');
 ok(JSON.stringify(sv.results.weakness.questions) === '[4,7]', 'weakness now based on Q4, Q7');
 ok(sv.results.topics['Comparing fractions'].got === 4 && sv.results.topics['Comparing fractions'].max === 9, 'comparing fractions = 4 / 9 (44%)');
 pv = V.parent('ahmad');
@@ -78,7 +83,18 @@ ok(!A.decideClassFlag('f-youssef', 'dismissed', '').ok, 'dismissing Youssef\'s f
 ok(A.decideClassFlag('f-youssef', 'dismissed', 'Careless mistakes').ok, 'dismiss with a reason');
 ok(A.sendSupportPlan('omar', { kind: 'Extra exercises', notifyParent: true }).ok, 'send support plan');
 ok(V.parent('ahmad').notifications[0].title === 'Support plan for comparing fractions', 'parent gets the support plan');
-ok(A.sendMessage('ahmad', 'sherin', 'Thank you!').ok && V.teacher().messages.length === 1, 'parent message reaches the teacher');
+ok(V.parent('ahmad').plans.length === 2 && V.parent('ahmad').plans[1].status === 'active', 'parent sees the new support plan');
+
+console.log('\nMessages between parent and teacher');
+ok(!A.sendMessage('ahmad', 'sherin', '   ').ok, 'an empty message is refused');
+const msg = A.sendMessage('ahmad', 'sherin', 'How can I help at home?', { examId: ID });
+ok(msg.ok && V.teacher().messages.length === 1 && V.teacher().messages[0].examId === ID, 'parent message reaches the teacher, with the exam');
+ok(V.teacher().notifications[0].title === "Message from Mr. Ahmad (Omar's parent)" && V.teacher().notifications[0].link.view === 'teacher-home', 'teacher is notified');
+ok(A.sendMessage('sherin', 'ahmad', 'Practise with a paper strip.', { replyTo: msg.id }).ok, 'teacher replies');
+pv = V.parent('ahmad');
+ok(pv.messages.length === 2 && pv.messages[1].replyTo === msg.id, 'parent sees the whole conversation');
+ok(pv.notifications[0].title === 'Reply from Mrs. Sherin' && pv.notifications[0].link.view === 'parent-home', 'parent is told about the reply');
+ok(V.student('omar').notifications.every(n => !/Message|Reply/.test(n.title)), 'the student does not see the messages');
 
 console.log('\nGerman exam (preloaded)');
 ok(V.exam('deutsch-mein-tag-lina').stage === 'read', "Lina's German exam is waiting for text verification");

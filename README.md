@@ -49,6 +49,14 @@ Omar (Grade 4) uploads his Maths exam *Fractions and Word Problems*. The OCR mis
 6. Change Q5 to 2 / 2, keep or remove the weakness and the red flag (with a reason), then *Notify student of change* → *Approve and send*.
 7. **Class gaps**: confirm or dismiss Youssef's red flag, and send Omar a support plan (the parent is told too).
 
+### Try it as the parent
+
+1. Click **Parent**. Mr. Ahmad sees Omar's recent exams. A grade appears only after Mrs. Sherin releases it; before that the exam says *Teacher checking*.
+2. After the release, a red box explains Mrs. Sherin's support concern in parent words, with one idea for helping at home. **Updates from school** lists every notification.
+3. Open the Maths exam: the grade, marks by topic, Mrs. Sherin's feedback and the support plan. During a second look the grade is hidden again; afterwards the page explains what the scanner misread and how the grade changed (72% → 80%).
+4. **Message Mrs. Sherin** (from Home or from an exam). As **Teacher**, the message appears on Home with a **Reply** button. The reply shows up in the parent's updates and opens the conversation.
+5. **Progress**: grades over time, weak spots (still practising / solved) and the support plans Mrs. Sherin shared.
+
 The **Shortcuts** menu in the demo bar jumps Omar's exam to the next stage, using the same actions as the screens. It is handy when recording the video.
 
 ## Project structure
@@ -61,12 +69,14 @@ css/
   components.css        buttons, chips, cards, fields, dialogs, toasts
   student.css           student screens
   teacher.css           teacher screens
+  parent.css            parent screens
 js/
   data.js               demo data (exams, OCR readings, simulated AI)
   store.js              shared state, all actions and rules
-  ui/                   small helpers: dom, icons, format, components, router
+  ui/                   small helpers: dom, icons, format, components, router, progress
   views/student/        home, upload, tracker, results, progress
   views/teacher/        shared (helpers), home, verify, review (+ questions, gaps, history tabs), gaps
+  views/parent/         shared (helpers, message dialog), home, results, progress
   demo.js               simulated OCR delay and the "Shortcuts" menu
   app.js                app shell (demo bar, navigation, page)
 tests/
@@ -81,7 +91,7 @@ With Node.js installed: `node tests/store.test.js` (checks the full story and al
 
 - [x] Part 1 · Shared state and student view
 - [x] Part 2 · Teacher view
-- [ ] Part 3 · Parent view
+- [x] Part 3 · Parent view
 
 ## AI use
 
