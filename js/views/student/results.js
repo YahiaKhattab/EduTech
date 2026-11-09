@@ -1,38 +1,97 @@
-/* Results and Feedback (wireframe screen 4, features S2, S3, S8).
-   Shows only the released snapshot: never AI suggestions, never during a second look. */
+/* My results (Student New design, M2 wireframe screen 4, features S2, S3, S8).
+   Shows only the released snapshot: never AI suggestions, never during a second look (R1).
+   Praise is factual (what was right), never tied to the grade. Also opens the English results
+   that were checked before the demo starts (history h3). */
 (function () {
   'use strict';
   const { h, icon } = UI;
   const store = window.EduTech;
+  const S = UI.S;
   const ME = 'omar';
-  const open = new Set();          // questions the student has opened
+  const LOOK = { correct: ['ready', 'check', 'Correct'], almost: ['check', 'star', 'Almost'], notyet: ['second', 'refresh', 'Not yet'] };
+  let picked = {};                                        // examId -> question number that is open
 
-  const LOOK = {
-    correct: ['success', 'check', 'Correct'],
-    almost: ['warning', 'star', 'Almost'],
-    notyet: ['warning', 'x', 'Not yet']
-  };
+  const statusOf = (mark, max) => mark === max ? 'correct' : mark === 0 ? 'notyet' : 'almost';
 
-  function question(r, q) {
+  /* Same shape for a live exam and a history entry. */
+  function fromExam(e) {
+    const r = e.results; const note = r.changeNote;
+    return { id: e.examId, subject: r.subject, title: r.title, score: r.score, max: r.max, pct: r.pct, checked: e.releasedAt,
+      questions: r.questions, strengths: r.strengths, weakness: r.weakness, practiseNote: null, redFlag: r.redFlag,
+      overallFeedback: r.overallFeedback, practice: r.practice, note,
+      changed: note ? (note.text.match(/Question (\d+)/g) || []).map(s => Number(s.split(' ')[1])) : [] };
+  }
+  function fromHistory(x) {
+    const d = x.detail;
+    return { id: x.id, subject: x.subject, title: x.title, score: x.score, max: x.max, pct: UI.pct(x.score, x.max), checked: x.date, story: d.story,
+      questions: d.questions.map(q => Object.assign({ status: statusOf(q.mark, q.max), feedback: null }, q)),
+      strengths: d.strengths, weakness: null, practiseNote: d.practiseNote, redFlag: null, overallFeedback: d.overallFeedback, practice: null, note: null, changed: [] };
+  }
+
+  function tile(r, q, open) {
     const [tone, ic, word] = LOOK[q.status];
-    const isOpen = open.has(q.q);
-    const id = 'q-' + q.q + '-body';
-    const changed = r.changeNote && r.changedQuestions && r.changedQuestions.includes(q.q);
-    return h('div', { class: 'q', 'data-open': String(isOpen) },
-      h('button', { type: 'button', class: 'q__row', 'aria-expanded': String(isOpen), 'aria-controls': id,
-        onClick: () => { isOpen ? open.delete(q.q) : open.add(q.q); UI.render(); } },
-        UI.badge(ic, { size: 'sm', iconSize: 20, bg: tone + '-bg', fg: tone + '-fg' }),
-        h('span', { class: 'grow' }, h('span', { class: 'small muted', style: { display: 'block', fontWeight: 600 } }, 'Question ' + q.q), h('span', { class: 'body-l' }, q.label)),
-        changed ? UI.chip('Second look', false, 'Changed') : null,
-        h('span', { class: 'q__mark' }, h('span', { class: 'small', style: { color: 'var(--' + tone + '-fg)', fontWeight: 600 } }, word), h('strong', null, q.mark + ' / ' + q.max)),
-        icon(isOpen ? 'chevron-up' : 'chevron-down', 22)),
-      isOpen ? h('div', { class: 'q__body', id },
-        h('dl', { class: 'stack-sm', style: { margin: 0 } },
-          h('div', { class: 'q__line' }, h('dt', null, 'Your answer'), h('dd', { class: 'body-l' }, q.yourAnswer)),
-          q.status !== 'correct' ? h('div', { class: 'q__line' }, h('dt', null, 'Right answer'), h('dd', { class: 'body-l' }, q.right)) : null,
-          q.why && q.status !== 'correct' ? h('div', { class: 'q__line' }, h('dt', null, 'Why'), h('dd', { class: 'body-l' }, q.why)) : null,
-          h('div', { class: 'q__line' }, h('dt', null, 'Your teacher says'), h('dd', { class: 'body-l' }, q.feedback))),
-        q.tip && q.status !== 'correct' ? h('div', { class: 'tip' }, h('span', { style: { color: 'var(--text-brand)' } }, icon('lightbulb', 22)), h('span', null, 'Tip: ' + q.tip)) : null) : null);
+    const changed = r.changed.includes(q.q);
+    return h('button', { type: 'button', class: 's-qtile s-qtile--' + tone, 'aria-pressed': String(open), 'aria-controls': 'q-panel',
+      'aria-label': 'Question ' + q.q + ': ' + word + ', ' + q.mark + ' out of ' + q.max + (changed ? ', changed after a second look' : ''),
+      onClick: () => { picked[r.id] = q.q; UI.render(); const p = document.getElementById('q-panel'); if (p) p.focus(); } },
+    h('span', { class: 's-qtile__top' }, h('strong', null, 'Q' + q.q), h('span', { class: 's-qtile__icon' }, icon(ic, 18))),
+    h('span', { class: 's-qtile__mark' }, q.mark + ' / ' + q.max),
+    h('span', { class: 's-qtile__word' }, word),
+    changed ? h('span', { class: 's-qtile__tag' }, 'Changed') : null);
+  }
+
+  function panel(r, q) {
+    const [tone, , word] = LOOK[q.status];
+    const changed = r.changed.includes(q.q);
+    const row = (label, text, cls) => text ? h('div', { class: 's-explain__row' + (cls ? ' ' + cls : '') }, h('dt', null, label), h('dd', null, text)) : null;
+    return h('section', { class: 's-explain s-explain--' + tone, id: 'q-panel', tabindex: '-1', 'aria-live': 'polite', 'aria-labelledby': 'q-panel-title' },
+      h('div', { class: 's-row', style: { flexWrap: 'wrap' } }, h('h3', { id: 'q-panel-title', style: { flex: '1' } }, 'Question ' + q.q + ' · ' + q.label),
+        changed ? S.chip('Second look', 'Changed') : null, h('span', { class: 's-explain__mark' }, word + ' · ' + q.mark + ' / ' + q.max)),
+      q.text ? h('p', { class: 's-explain__q' }, q.text) : null,
+      h('dl', null,
+        row('Your answer', q.yourAnswer),
+        q.status !== 'correct' ? row('Right answer', q.right, 's-explain__row--right') : null,
+        row('Why', q.why),
+        q.feedback && q.feedback !== q.why ? row(S.teacher() + ' says', q.feedback) : null),
+      q.tip && q.status !== 'correct' ? h('p', { class: 's-explain__tip' }, h('span', { class: 's-tip__icon' }, icon('lightbulb', 22)), h('span', null, h('strong', null, 'Tip: '), q.tip)) : null);
+  }
+
+  /* Factual praise: what was fully right. Never "great job" for a number. */
+  function praise(r) {
+    const full = r.questions.filter(q => q.status === 'correct').length;
+    const parts = ['You got ' + full + ' of ' + r.questions.length + ' questions fully right.'];
+    if (r.strengths.length) parts.push('Every mark in ' + UI.list(r.strengths) + '.');
+    return parts.join(' ');
+  }
+
+  function scoreCard(r) {
+    return S.card({ class: 's-card s-score', 'aria-labelledby': 'score-title' },
+      h('div', { class: 's-score__ring', role: 'img', 'aria-label': r.score + ' out of ' + r.max + ', ' + r.pct + ' percent' },
+        h('strong', null, String(r.score)), h('span', null, 'out of ' + r.max)),
+      h('div', { class: 's-stack', style: { gap: '10px' } },
+        h('h2', { id: 'score-title', class: 's-score__pct' }, r.pct + '%'),
+        h('p', { class: 's-sub', style: { color: 'var(--s-ink)' } }, praise(r)),
+        h('div', { class: 's-where__chips' }, S.chip('Ready', 'Checked by ' + S.teacher()), r.note ? S.chip('Second look', 'Updated') : null)));
+  }
+
+  function side(r) {
+    const kids = [];
+    kids.push(S.card({ class: 's-card', 'aria-labelledby': 'good-title' }, h('h3', { id: 'good-title' }, 'What you are good at'),
+      r.strengths.length ? r.strengths.map(s => h('div', { class: 's-tip' }, h('span', { class: 's-tip__icon', style: { background: 'var(--s-ready-bg)', color: 'var(--s-ready-fg)' } }, icon('flower', 22)), s))
+        : h('p', { class: 's-caption' }, 'Keep practising. Each exam shows what you can already do.'),
+      r.weakness || r.practiseNote ? [h('div', { class: 's-divider' }), h('h3', null, 'What to practise'),
+        h('div', { class: 's-tip', style: { alignItems: 'flex-start' } }, h('span', { class: 's-tip__icon', style: { background: 'var(--s-check-bg)' } }, icon('sprout', 22)),
+          h('div', null, r.weakness ? [h('strong', null, r.weakness.label), h('p', { class: 's-caption' }, 'This was tricky in Questions ' + UI.list(r.weakness.questions.map(String)) + '.')] : r.practiseNote))] : null));
+    if (r.redFlag) kids.push(S.card({ class: 's-card s-help-card', 'aria-labelledby': 'help-title' },
+      h('div', { class: 's-row' }, h('span', { class: 's-plan__icon' }, icon('hand', 26)), h('h3', { id: 'help-title' }, r.redFlag.childLabel)),
+      h('p', null, S.teacher() + ' noticed that ' + (r.weakness ? r.weakness.label.toLowerCase() : 'this topic') + ' needs a bit more practice. She will help you in class, and you can ask her anytime.')));
+    kids.push(S.card({ class: 's-card', 'aria-labelledby': 'from-title' },
+      h('div', { class: 's-row' }, h('span', { class: 's-plan__icon', style: { background: 'var(--s-brand-tint)' } }, icon('message', 24)), h('h3', { id: 'from-title' }, 'From ' + S.teacher())),
+      h('p', null, r.overallFeedback)));
+    if (r.practice) kids.push(S.card({ class: 's-card', 'aria-labelledby': 'practice-title' }, h('h3', { id: 'practice-title' }, 'Practice from ' + S.teacher()),
+      h('div', { class: 's-plan__topic' }, h('span', { class: 's-plan__icon' }, icon('book', 24)), h('span', null, h('strong', { style: { fontSize: '18px' } }, r.practice.title), h('span', { class: 's-caption', style: { display: 'block' } }, r.practice.size))),
+      UI.button({ label: 'See practice plan', icon: 'book', variant: 'secondary', onClick: () => S.practicePlan(r.practice) })));
+    return h('div', { class: 's-stack' }, kids);
   }
 
   UI.route('student/results', {
@@ -40,62 +99,41 @@
     render(examId) {
       const v = store.views.student(ME);
       const e = v.exams.find(x => x.examId === examId);
-      const teacher = store.state.users.sherin.name;
+      const past = v.history.find(x => x.id === examId && x.detail);
       const page = h('main', { class: 'page' }, UI.backLink('#/student/home', 'Back to Home'));
 
-      if (!e || !e.results) {          // R1: locked until the teacher releases it
-        page.appendChild(UI.card(null, h('div', { class: 'empty' }, UI.badge('lock', { size: 'lg' }), h('h2', null, 'Not ready yet'),
-          h('p', { class: 'body-l secondary' }, 'You can see your grade after ' + teacher + ' has checked your exam.'),
-          e ? UI.button({ label: 'Where is my exam?', icon: 'arrow-right', variant: 'secondary', size: 'lg', href: '#/student/exam/' + e.examId }) : null)));
+      if (!past && (!e || !e.results)) {          // R1: locked until the teacher releases it, hidden during a second look
+        page.appendChild(S.card({ class: 's-card s-empty' }, h('span', { class: 's-hero__art', style: { background: 'var(--s-subtle)', color: 'var(--s-ink2)' } }, icon('lock', 44)),
+          h('div', { class: 's-stack', style: { gap: '12px' } }, h('h2', null, 'Not ready yet'),
+            h('p', { class: 's-sub' }, e && e.status === 'Second look' ? S.teacher() + ' is taking a second look. Your result comes back when she finishes.'
+              : 'You can see your results after ' + S.teacher() + ' has checked your exam.'),
+            e ? h('div', null, UI.button({ label: 'Where is my exam?', icon: 'arrow-right', variant: 'secondary', size: 'lg', href: '#/student/exam/' + e.examId })) : null)));
         return page;
       }
 
-      const r = e.results;
-      const note = r.changeNote;
-      if (note) r.changedQuestions = (note.text.match(/Question (\d+)/g) || []).map(s => Number(s.split(' ')[1]));
-      const strengths = r.strengths.length ? r.strengths : [];
-      const firstName = v.user.first;
+      const r = past ? fromHistory(past) : fromExam(e);
+      if (!r.questions.some(q => q.q === picked[r.id])) {
+        const first = r.questions.find(q => q.status !== 'correct') || r.questions[0];
+        picked[r.id] = first.q;
+      }
+      const open = r.questions.find(q => q.q === picked[r.id]);
 
-      page.appendChild(h('div', { class: 'page__head' },
-        h('div', null, h('h1', null, r.subject + ' · ' + r.title), h('p', { class: 'body-l secondary' }, 'Checked by ' + teacher + (note ? ' · updated ' + UI.day(note.at) : ''))),
-        UI.chip('Ready', true)));
+      page.appendChild(h('div', { class: 's-title' }, S.subject(r.subject, 'lg'),
+        h('div', { style: { flex: '1', minWidth: '220px' } }, h('h1', null, r.title),
+          h('p', { class: 's-sub' }, r.subject + (r.story ? ' · ' + r.story : '') + (r.checked ? ' · checked ' + UI.day(r.checked) : '') + (r.note ? ' · updated ' + UI.day(r.note.at) : ''))),
+        S.chip('Ready', null, true)));
 
-      if (note) page.appendChild(h('section', { class: 'callout callout--recheck', 'aria-labelledby': 'changed-title' },
-        UI.badge('refresh', { fg: 'recheck-fg' }),
-        h('div', { class: 'stack-sm' }, h('h2', { id: 'changed-title', style: { color: 'var(--recheck-fg)', fontSize: 'var(--fs-h3)' } }, 'Your teacher took a second look'),
-          h('p', { class: 'body-l' }, note.text), h('p', { class: 'caption' }, 'Approved by ' + teacher + ' · ' + UI.day(note.at)))));
+      const answers = S.card({ class: 's-card', 'aria-labelledby': 'answers-title' },
+        h('div', { class: 's-row', style: { flexWrap: 'wrap' } }, h('h2', { id: 'answers-title', style: { flex: '1' } }, 'Your answers'), h('span', { class: 's-caption' }, 'Tap a question to see why')),
+        h('div', { class: 's-qgrid' }, r.questions.map(q => tile(r, q, q.q === open.q))),
+        panel(r, open));
 
-      const message = r.pct >= 85 ? 'Excellent work, ' + firstName + '!' : r.pct >= 70 ? 'Good work, ' + firstName + '!' : 'Keep going, ' + firstName + '!';
-      const left = h('div', { class: 'stack' },
-        UI.card(null, h('div', { class: 'grade' },
-          h('div', { class: 'grade__ring', role: 'img', 'aria-label': r.score + ' out of ' + r.max }, h('span', { class: 'grade__score' }, String(r.score)), h('span', { class: 'secondary', style: { fontWeight: 600 } }, 'out of ' + r.max)),
-          h('div', { class: 'stack-sm grow' }, h('p', { class: 'display' }, r.pct + '%'),
-            h('p', { class: 'body-l' }, message + (strengths.length ? ' You did really well on ' + UI.list(strengths.map(s => s.toLowerCase())) + '.' : '')),
-            h('div', null, UI.chip('Teacher confirmed'))))),
-        UI.card(null, h('div', { class: 'card__head' }, h('h2', null, 'Your answers'), h('span', { class: 'secondary small' }, 'Tap a question to see why')),
-          h('div', { class: 'stack-sm' }, r.questions.map(q => question(r, q)))));
+      const note = r.note ? S.card({ class: 's-card s-card--second', 'aria-labelledby': 'note-title' },
+        h('div', { class: 's-row' }, h('span', { class: 's-banner__icon', style: { background: '#fff', color: 'var(--s-second-fg)' } }, icon('search', 26)),
+          h('h2', { id: 'note-title', style: { color: 'var(--s-second-fg)', fontSize: '22px' } }, S.teacher() + ' took a second look')),
+        h('p', null, r.note.text), h('p', { class: 's-caption' }, 'Approved by ' + S.teacher() + ' · ' + UI.day(r.note.at))) : null;
 
-      const right = h('div', { class: 'stack' },
-        UI.card(null, h('h3', null, 'What you are good at'),
-          strengths.length ? strengths.map(s => h('div', { class: 'row' }, UI.badge('star', { size: 'sm', iconSize: 18, bg: 'success-bg', fg: 'success-fg' }), h('span', null, s))) : h('p', { class: 'secondary' }, 'Keep practising. You will get there!'),
-          r.weakness ? [h('div', { class: 'divider' }), h('h3', null, 'What to practise'),
-            h('div', { class: 'row', style: { alignItems: 'flex-start' } }, UI.badge('target', { size: 'sm', iconSize: 18, bg: 'warning-bg', fg: 'warning-fg' }),
-              h('div', null, h('strong', null, r.weakness.label), h('p', { class: 'secondary', style: { fontSize: 'var(--fs-body)' } },
-                'This was tricky in Questions ' + UI.list(r.weakness.questions.map(String)) + '.')))] : null),
-
-        r.redFlag ? h('section', { class: 'callout callout--brand', style: { display: 'grid', gap: '10px' } },
-          h('div', { class: 'row' }, h('span', { style: { color: 'var(--text-brand)' } }, icon('flag', 22)), h('h3', { style: { color: 'var(--text-brand)' } }, r.redFlag.childLabel)),
-          h('p', null, teacher + ' noticed that ' + (r.weakness ? r.weakness.label.toLowerCase() : 'this topic') + ' needs a bit more practice. She made a short practice plan for you, and you can ask her in class anytime.')) : null,
-
-        UI.card(null, h('div', { class: 'row' }, UI.badge('message', { size: 'sm', iconSize: 18, bg: 'brand-muted', fg: 'text-brand' }), h('h3', null, 'From ' + teacher)),
-          h('p', { class: 'body-l' }, r.overallFeedback)),
-
-        r.practice ? UI.card(null, h('h3', null, 'Practice from your teacher'),
-          h('div', { class: 'row', style: { background: 'var(--bg-subtle)', padding: '12px', borderRadius: 'var(--r-md)' } }, UI.badge('book', { size: 'sm', iconSize: 20, bg: 'bg-surface', fg: 'text-brand' }),
-            h('div', null, h('strong', null, r.practice.title), h('p', { class: 'secondary small' }, r.practice.size))),
-          UI.button({ label: 'See my practice', icon: 'arrow-right', variant: 'secondary', block: true, href: '#/student/progress' })) : null);
-
-      page.appendChild(h('div', { class: 'cols' }, left, right));
+      page.appendChild(h('div', { class: 's-cols' }, h('div', { class: 's-stack' }, scoreCard(r), answers, note), side(r)));
       return page;
     }
   });

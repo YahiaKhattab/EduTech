@@ -36,17 +36,22 @@
     const list = store.state.notifications.filter(n => n.to === userId);
     const unread = list.filter(n => !n.read).length;
     const wrap = h('div', { style: { position: 'relative' } });
-    const btn = h('button', { type: 'button', class: 'icon-btn', 'aria-expanded': String(bellOpen), 'aria-label': 'Notifications' + (unread ? ', ' + unread + ' unread' : ''),
-      onClick: e => { e.stopPropagation(); bellOpen = !bellOpen; render(); } }, icon('bell', 22), unread ? h('span', { class: 'icon-btn__dot' }) : null);
+    /* Student view: the bell shows how many messages are new and opens "Messages for you" (Student New design). */
+    const btn = h('button', { type: 'button', class: 'icon-btn s-bell', 'aria-expanded': String(bellOpen), 'aria-label': 'Messages' + (unread ? ', ' + unread + ' new' : ''),
+      onClick: e => { e.stopPropagation(); bellOpen = !bellOpen; render(); } }, icon('bell', 26), unread ? h('span', { class: 's-bell__count', 'aria-hidden': 'true' }, String(unread)) : null);
     wrap.appendChild(btn);
-    if (bellOpen) {
-      wrap.appendChild(h('div', { class: 'popover', onClick: e => e.stopPropagation() },
-        h('div', { class: 'popover__head' }, h('h3', null, 'Notifications'),
-          unread ? h('button', { type: 'button', class: 'link-btn', onClick: () => store.actions.markRead(userId) }, 'Mark all as read') : null),
-        list.length ? list.slice(0, 6).map(n => UI.notification(n, UI.openNotification)) : h('p', { class: 'secondary', style: { padding: '8px' } }, 'Nothing new yet.')));
-    }
+    if (bellOpen) wrap.appendChild(UI.S.messagesPanel(list, {
+      onOpen: UI.openNotification,
+      onClose: () => { bellOpen = false; render(); btnFocus(); },
+      onMarkAll: () => store.actions.markRead(userId)
+    }));
     return wrap;
   }
+
+  const btnFocus = () => { const b = document.querySelector('.s-bell'); if (b) b.focus(); };
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && bellOpen) { bellOpen = false; render(); btnFocus(); } });
+
+  UI.openMessages = () => { bellOpen = true; render(); const p = document.querySelector('.s-panel .s-close'); if (p) p.focus(); };
 
   UI.openNotification = function (n) {
     bellOpen = false;

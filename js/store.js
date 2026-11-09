@@ -13,7 +13,7 @@
 (function (root) {
   'use strict';
   const Data = (typeof module !== 'undefined' && module.exports) ? require('./data.js') : root.EduTechData;
-  const KEY = 'edutech-demo-v3';   // bump when the demo data changes, so old saved data is ignored
+  const KEY = 'edutech-demo-v4';   // bump when the demo data changes, so old saved data is ignored
   const clone = o => JSON.parse(JSON.stringify(o));
 
   let state = null;
@@ -83,6 +83,7 @@
     if (state.exams[id] && state.exams[id].stage !== 'sent') return fail('This exam was already sent.');
     remember();
     const t = state.templates[templateId];
+    const isNew = !state.exams[id];
     state.exams[id] = {
       id, templateId, studentId, stage: 'sent', uploadedAt: clock(), pages: pages || 3, language: t.language,
       answers: a.answers.map(x => ({ q: x.q, truth: x.truth, ocr: x.ocr, text: null, doubt: x.doubt || null, resolved: !x.doubt })),
@@ -90,6 +91,8 @@
       corrections: [], released: null, releasedAt: null, changeNotes: []
     };
     notify('sherin', state.users[studentId].name + ' uploaded an exam', t.subject + ' · ' + t.title + ' · ' + UI_pages(pages || 3), { view: 'teacher-verify', examId: id });
+    /* The student gets one confirmation per exam (not again if the same upload is repeated). */
+    if (isNew) notify(studentId, 'Your ' + t.subject + ' exam arrived', state.users.sherin.name + ' will check it soon.', { view: 'student-tracker', examId: id });
     return quiet ? { ok: true } : commit('submitExam');
   }
   /* Simulated OCR finishing (the screen calls this after a short delay). */
@@ -255,7 +258,7 @@
     const t = tpl(ex); const sc = score(ex);
     const questions = t.questions.map(qi => {
       const m = ex.marks[qi.q]; const mark = finalMark(m);
-      return { q: qi.q, label: qi.label, max: qi.max, mark, topic: qi.topic, status: mark === qi.max ? 'correct' : mark === 0 ? 'notyet' : 'almost',
+      return { q: qi.q, label: qi.label, text: qi.text || null, max: qi.max, mark, topic: qi.topic, status: mark === qi.max ? 'correct' : mark === 0 ? 'notyet' : 'almost',
         feedback: m.feedback || m.aiFeedback, yourAnswer: ans(ex, qi.q).text, right: qi.right, why: qi.why || null, tip: qi.tip || null };
     });
     const topics = {}; questions.forEach(q => { (topics[q.topic] = topics[q.topic] || { got: 0, max: 0 }); topics[q.topic].got += q.mark; topics[q.topic].max += q.max; });
@@ -276,12 +279,12 @@
   const views = {
     student(studentId) {
       const live = Object.values(state.exams).filter(e => e.studentId === studentId).map(e => {
-        const t = tpl(e); return { examId: e.id, subject: t.subject, title: t.title, status: studentStatus(e), stage: e.stage, uploadedAt: e.uploadedAt,
+        const t = tpl(e); return { examId: e.id, templateId: e.templateId, subject: t.subject, title: t.title, status: studentStatus(e), stage: e.stage, uploadedAt: e.uploadedAt, releasedAt: e.releasedAt || null,
           results: e.stage === 'released' ? e.released : null };                                   // R1: nothing before release, nothing during a second look
       });
-      const notStarted = state.assignments.filter(a => a.studentId === studentId && !state.exams[a.templateId + '-' + studentId]).map(a => ({ templateId: a.templateId, subject: state.templates[a.templateId].subject, title: state.templates[a.templateId].title, date: state.templates[a.templateId].date }));
+      const notStarted = state.assignments.filter(a => a.studentId === studentId && !state.exams[a.templateId + '-' + studentId]).map(a => { const t = state.templates[a.templateId]; return { templateId: a.templateId, subject: t.subject, title: t.title, date: t.date, language: t.language, pages: t.pages || 1 }; });
       return { user: state.users[studentId], exams: live, toUpload: notStarted, history: state.history.filter(h => h.studentId === studentId),
-        plans: state.plans.filter(p => p.studentId === studentId), notifications: state.notifications.filter(n => n.to === studentId) };
+        plans: state.plans.filter(p => p.studentId === studentId), practice: (state.practice || []).filter(p => p.studentId === studentId), notifications: state.notifications.filter(n => n.to === studentId) };
     },
     parent(parentId) {
       const p = state.users[parentId]; const child = state.users[p.childId]; const s = views.student(p.childId);

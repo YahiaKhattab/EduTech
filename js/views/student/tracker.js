@@ -1,59 +1,98 @@
-/* Exam Status Tracker: where is my exam? (wireframe screen 3, feature S6).
-   The grade stays locked until the teacher has confirmed it (rule R1). */
+/* Where is my exam? (Student New design, M2 wireframe screen 3, feature S6).
+   A road with four stops; Pip waits at the stop the exam has reached. The grade stays locked
+   until the teacher has confirmed it (rule R1), and stays hidden during a second look. */
 (function () {
   'use strict';
   const { h, icon } = UI;
   const store = window.EduTech;
+  const S = UI.S;
   const ME = 'omar';
 
-  const STEPS = [
-    ['Sent', 'upload', 'Your photos arrived.'],
-    ['Read', 'eye', 'The computer read your answers.'],
-    ['Teacher checking', 'clock', 'is checking your answers.'],
-    ['Ready', 'star', 'Your results are ready!']
+  const STOPS = [
+    ['Sent', 'mail', 'Your photos arrived.'],
+    ['Read', 'glasses', 'The computer read your answers.'],
+    ['Teacher checking', 'pencil', 'TEACHER checks every answer.'],
+    ['Ready', 'star', 'Your results are ready.']
   ];
-  const STAGE_INDEX = { sent: 0, read: 1, graded: 2, recheck: 2, released: 3 };
+  /* What Pip says at each stop. */
+  const SAYS = {
+    'Sent': 'I arrived safely! Next, the computer reads your answers.',
+    'Read': 'Your answers are read. TEACHER will check them soon.',
+    'Teacher checking': 'TEACHER is checking your answers now.',
+    'Second look': 'TEACHER is checking one question again, to make sure your mark is right.',
+    'Ready': 'All done! Your results are ready.'
+  };
+  /* The banner after sending is shown once, for the exam that was just sent. */
+  window.addEventListener('hashchange', () => { if (!/student\/exam\//.test(location.hash)) S.justSent = null; });
+
+  function road(e) {
+    const at = S.stepIndex(e.status);            // 0..3, or 4 when Ready
+    const now = Math.min(at, 3);
+    const teacher = S.teacher();
+    const list = h('ol', { class: 's-road', 'aria-label': 'Where is my exam?' },
+      h('li', { class: 's-road__track', 'aria-hidden': 'true' }, h('span', { class: 's-road__fill', style: { width: Math.round(now / 3 * 100) + '%' } })));
+    STOPS.forEach(([label, ic, caption], i) => {
+      const done = i < at || (at === 4 && i === 3);
+      const here = i === now;
+      const second = here && e.status === 'Second look';
+      const tone = second ? 'second' : S.tone(label);
+      const name = second ? 'Second look' : label;
+      list.appendChild(h('li', { class: 's-stop' + (done ? ' s-stop--done' : '') + (here ? ' s-stop--here s-stop--' + tone : ''), 'aria-current': here ? 'step' : null },
+        h('div', { class: 's-stop__slot' }, here ? [h('p', { class: 's-bubble' }, SAYS[e.status].replace('TEACHER', teacher)), S.pip(e.status === 'Ready' || e.status === 'Sent' || e.status === 'Read' ? 'happy' : 'waiting', 56)] : null),
+        h('span', { class: 's-stop__dot' }, icon(done && !here ? 'check' : second ? 'search' : ic, 28)),
+        h('strong', { class: 's-stop__name' }, name),
+        h('span', { class: 's-stop__caption' }, second ? teacher + ' is taking a second look.' : caption.replace('TEACHER', teacher)),
+        h('span', { class: 'sr-only' }, done && !here ? '(done)' : here ? '(now)' : '(not yet)')));
+    });
+    return list;
+  }
 
   UI.route('student/exam', {
     role: 'student', title: 'Where is my exam?',
     render(examId) {
       const v = store.views.student(ME);
       const e = v.exams.find(x => x.examId === examId);
-      if (!e) return h('main', { class: 'page' }, UI.backLink('#/student/home', 'Back to Home'),
-        UI.card(null, h('div', { class: 'empty' }, h('h2', null, 'Exam not found'), h('p', { class: 'secondary' }, 'It may have been removed when the demo was reset.'))));
+      const back = UI.backLink('#/student/home', 'Back to Home');
+      if (!e) return h('main', { class: 'page' }, back,
+        S.card({ class: 's-card s-empty' }, S.pip('waiting', 72), h('div', null, h('h2', null, 'We could not find this exam'),
+          h('p', { class: 's-sub' }, 'It may have been removed when the demo was reset.'))));
 
-      const teacher = store.state.users.sherin.name;
-      const at = STAGE_INDEX[e.stage]; const second = e.stage === 'recheck'; const ready = e.stage === 'released';
-      const journey = h('ol', { class: 'journey', style: { listStyle: 'none', padding: 0, margin: 0 } });
-      STEPS.forEach(([label, ic, caption], i) => {
-        let state = i < at || (ready && i === 3) ? 'done' : i === at ? 'current' : 'upcoming';
-        if (second && i === 2) state = 'attention';
-        const capText = i === 2 ? (second ? teacher + ' is taking a second look.' : teacher + ' ' + caption) : caption;
-        journey.appendChild(h('li', { class: 'journey__step journey__step--' + state, 'aria-current': state === 'current' || state === 'attention' ? 'step' : null },
-          h('span', { class: 'journey__icon' }, icon(state === 'done' ? 'check' : state === 'attention' ? 'refresh' : ic, 28)),
-          h('span', { class: 'journey__label' }, label),
-          h('span', { class: 'journey__caption' }, capText),
-          h('span', { class: 'sr-only' }, state === 'done' ? '(done)' : state === 'upcoming' ? '(not yet)' : '(now)')));
-        if (i < 3) journey.appendChild(h('li', { class: 'journey__line' + (i < at || ready ? ' journey__line--done' : ''), 'aria-hidden': 'true' }));
-      });
+      const teacher = S.teacher();
+      const ready = e.status === 'Ready'; const second = e.status === 'Second look';
+      const t = store.state.templates[e.templateId];
+      const pages = store.state.exams[e.examId] ? store.state.exams[e.examId].pages : null;
 
-      return h('main', { class: 'page' }, UI.backLink('#/student/home', 'Back to Home'),
-        h('div', { class: 'page__head' }, h('div', null, h('h1', null, e.subject + ' · ' + e.title),
-          h('p', { class: 'body-l secondary' }, 'Sent ' + UI.ago(e.uploadedAt).toLowerCase() + ' · ' + teacher)), UI.chip(e.status, true)),
+      const banner = S.justSent === e.examId && !ready ? S.card({ class: 's-card s-card--ready s-banner', role: 'status' },
+        h('span', { class: 's-banner__icon' }, icon('check', 28)),
+        h('div', null, h('strong', null, 'Your exam was sent!'), h('span', null, teacher + ' got ' + (pages ? UI.plural(pages, 'page') : 'your pages') + ' of ' + e.title + '.'))) : null;
 
-        UI.card(null, h('h2', null, 'Where is my exam?'), journey),
+      const secondCard = second ? S.card({ class: 's-card s-card--second', 'aria-labelledby': 'second-title' },
+        h('div', { class: 's-row' }, h('span', { class: 's-banner__icon', style: { background: '#fff', color: 'var(--s-second-fg)' } }, icon('search', 26)),
+          h('h2', { id: 'second-title', style: { color: 'var(--s-second-fg)' } }, teacher + ' is taking a second look')),
+        h('p', { class: 's-sub', style: { color: 'var(--s-ink)' } }, 'She is checking one question again to make sure your mark is right. Nothing is wrong. Your result is hidden until she finishes, and you will get a message.')) : null;
 
-        second
-          ? h('section', { class: 'callout callout--recheck' }, UI.badge('refresh', { fg: 'recheck-fg' }),
-              h('div', { class: 'stack-sm' }, h('h3', { style: { color: 'var(--recheck-fg)' } }, 'Your teacher is taking a second look'),
-                h('p', { class: 'body-l' }, teacher + ' is checking your exam again to make sure your mark is right. Nothing is wrong. Your results will be ready soon.')))
-          : UI.card(null, h('h3', null, 'Notes from your teacher'),
-              h('p', { class: 'body-l secondary' }, ready ? teacher + ' left you feedback. Open your results to read it.' : 'No notes yet. If your teacher takes a second look at your exam, a note will appear here.')),
+      const results = S.card({ class: 's-card s-next' + (ready ? ' s-card--ready' : ''), 'aria-labelledby': 'next-title' },
+        h('h2', { id: 'next-title' }, ready ? 'Your results are ready' : 'Your results'),
+        h('p', { class: 's-sub', id: 'lock-hint' }, ready ? teacher + ' checked your exam and left you feedback.'
+          : 'You can see your results after ' + teacher + ' has checked your exam.'),
+        h('div', null, ready ? UI.button({ label: 'See my results', icon: 'star', size: 'lg', href: '#/student/results/' + e.examId })
+          : UI.button({ label: 'See my results', icon: 'lock', size: 'lg', disabled: true, describedBy: 'lock-hint' })));
 
-        h('div', { class: 'row row--wrap' },
-          UI.button({ label: 'View results', icon: ready ? 'arrow-right' : 'lock', size: 'lg', disabled: !ready, href: '#/student/results/' + e.examId, describedBy: 'lock-hint' }),
-          UI.button({ label: 'Back to Home', icon: 'home', variant: 'secondary', size: 'lg', href: '#/student/home' }),
-          ready ? null : h('p', { class: 'secondary', id: 'lock-hint' }, 'You can see your grade after ' + teacher + ' has checked your exam.')));
+      const info = S.card({ class: 's-card s-facts' }, h('h3', null, 'About this exam'),
+        h('dl', null,
+          h('div', null, h('dt', null, 'Subject'), h('dd', null, e.subject)),
+          h('div', null, h('dt', null, 'Sent'), h('dd', null, UI.ago(e.uploadedAt))),
+          pages ? h('div', null, h('dt', null, 'Pages'), h('dd', null, String(pages))) : null,
+          t ? h('div', null, h('dt', null, 'Language'), h('dd', null, t.language === 'de' ? 'Deutsch' : 'English')) : null,
+          h('div', null, h('dt', null, 'Teacher'), h('dd', null, teacher))));
+
+      return h('main', { class: 'page' }, back, banner,
+        h('div', { class: 's-title' }, S.subject(e.subject, 'lg'),
+          h('div', { style: { flex: '1', minWidth: '220px' } }, h('h1', null, e.title), h('p', { class: 's-sub' }, e.subject + ' · ' + S.sentText(e.uploadedAt))),
+          S.chip(e.status, null, true)),
+        S.card({ class: 's-card', 'aria-labelledby': 'road-title' }, h('h2', { id: 'road-title' }, 'Where is my exam?'), road(e)),
+        secondCard,
+        h('div', { class: 's-cols' }, results, info));
     }
   });
 })();
