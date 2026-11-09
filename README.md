@@ -4,24 +4,19 @@ AI-assisted assessment and learning gap detection for children in Grades 1–5.
 CSEN 909 Human Computer Interaction, Winter 2026, German University in Cairo · **Team #30**
 (Yahia Hany Khattab · Youssef Hesham · Samer Eyad Waly · Kerollos Mohsen · Islam Hatem)
 
-This is the optional coded front-end for Milestone 3. It follows our high-fidelity prototype (Penpot) screen by screen.
+**Live demo:** https://yahiakhattab.github.io/EduTech/
+**Repository:** https://github.com/YahiaKhattab/EduTech
+
+This is the optional coded front-end for Milestone 3. It follows our high-fidelity prototype (Penpot) screen by screen. 
 
 ## Run it
 
-No installation and no build step.
+No installation and no build step. Open the [live demo](https://yahiakhattab.github.io/EduTech/), or run it locally:
 
-- **Easiest:** double-click `index.html`. It opens in your browser.
+- **Easiest:** download or clone the repository and double-click `index.html`. It opens in your browser.
 - **In VS Code:** install the *Live Server* extension, right-click `index.html` → **Open with Live Server**.
 
-Use the dark **Demo** bar at the top to switch role (Student / Teacher / Parent) and to **Reset demo** before recording.
-
-## Deploy (GitHub Pages)
-
-1. On GitHub, open the repository → **Settings** → **Pages**.
-2. Under **Build and deployment**, choose **Deploy from a branch**, branch **main**, folder **/ (root)**, then **Save**.
-3. After about a minute the site is live at `https://<your-username>.github.io/EduTech/`.
-
-GitHub Pages on a *private* repository needs GitHub Pro (free with the GitHub Student Developer Pack). Otherwise make the repository public before submission.
+Use the dark **Demo** bar at the top to switch role (Student / Teacher / Parent). Click **Reset demo** once before you start: the demo data is saved in your browser, so this gives everyone the same starting point.
 
 ## How it works
 
@@ -38,6 +33,16 @@ GitHub Pages on a *private* repository needs GitHub Pro (free with the GitHub St
 ## Demo story
 
 Omar (Grade 4) uploads his Maths exam *Fractions and Word Problems*. The OCR misreads his "7/8" as "1/8", the AI grades 18/25 (72%), and Mrs. Sherin confirms and releases it. Later she spots the misread, corrects it, re-checks the three results built on it, and approves a note: Omar's grade becomes 20/25 (80%), and his parent, Mr. Ahmad, is told what changed.
+
+### Try it as the student
+
+1. Click **Reset demo**, then **Student**. Omar has 2 new messages (bell) and 2 exams to send: Maths and German.
+2. Open the bell and tap **Your English results are ready**: every question explained, with what he did well.
+3. **Upload my exam** → **Maths**. The exam and its 3 pages fill in. Use **No photos? Use 3 sample pages (demo)** or real photos, try **Retake** and **Add a page**, tick the three checks → **Send to Mrs. Sherin**.
+4. The tracker shows where the exam is: *Sent*, then *Read* after a few seconds. **See my results** stays locked until the teacher releases them.
+5. Upload the German exam *Mein Tag* the same way: the language switches to Deutsch by itself.
+6. After the teacher releases the Maths exam (or **Shortcuts**): open the results, tap a question tile for the explanation, and open **See practice plan**. During a second look the grade is hidden; afterwards the changed question is marked and a note explains why.
+7. **My Progress**: marks over time, practice from Mrs. Sherin (**See plan**), and the things Omar is working on.
 
 ### Try it as the teacher
 
@@ -57,7 +62,46 @@ Omar (Grade 4) uploads his Maths exam *Fractions and Word Problems*. The OCR mis
 4. **Message Mrs. Sherin** (from Home or from an exam). As **Teacher**, the message appears on Home with a **Reply** button. The reply shows up in the parent's updates and opens the conversation.
 5. **Progress**: grades over time, weak spots (still practising / solved) and the support plans Mrs. Sherin shared.
 
-The **Shortcuts** menu in the demo bar jumps Omar's exam to the next stage, using the same actions as the screens. It is handy when recording the video.
+The **Shortcuts** menu in the demo bar jumps Omar's Maths exam to the next stage, using the same actions as the screens. It is handy when recording the video.
+
+## Testing
+
+**Store tests (Node.js only).** These play the whole story through the store and check all six rules, plus the German upload and the student messages:
+
+```
+node tests/store.test.js
+```
+
+Expected: `77 passed, 0 failed`.
+
+**Browser tests (Playwright).** These click through each view in a real browser and save screenshots to the folder you name. Set up once:
+
+```
+npm install --no-save playwright
+npx playwright install chromium
+```
+
+Then:
+
+```
+node tests/e2e-student.js out/student
+node tests/e2e-teacher.js out/teacher
+node tests/e2e-parent.js  out/parent
+```
+
+Each prints a numbered list of checks and ends with `errors: none`. Expected: student 43, teacher 18, parent 28 checks. They include no horizontal scrolling at phone width.
+
+**By hand:** follow *Demo story* above, after **Reset demo**.
+
+## Deploy (GitHub Pages)
+
+The live demo is deployed from this repository:
+
+1. On GitHub, open the repository → **Settings** → **Pages**.
+2. Under **Build and deployment**, choose **Deploy from a branch**, branch **main**, folder **/ (root)**, then **Save**.
+3. After about a minute the site is live at `https://<your-username>.github.io/EduTech/`. Every push to `main` updates it.
+
+No build step or server settings are needed: all paths are relative, and the pages use `#/` addresses, so reloading any page works.
 
 ## Project structure
 
@@ -67,31 +111,25 @@ css/
   tokens.css            colours, type, spacing (same as the design system)
   base.css              page layout, demo bar, navigation
   components.css        buttons, chips, cards, fields, dialogs, toasts
-  student.css           student screens
+  student.css           student screens (shared pieces also used by the parent view)
+  student-kit.css       "Student New" design, scoped to the student view
   teacher.css           teacher screens
   parent.css            parent screens
 js/
   data.js               demo data (exams, OCR readings, simulated AI)
   store.js              shared state, all actions and rules
   ui/                   small helpers: dom, icons, format, components, router, progress
-  views/student/        home, upload, tracker, results, progress
+  views/student/        kit (shared student pieces), home, upload, tracker, results, progress
   views/teacher/        shared (helpers), home, verify, review (+ questions, gaps, history tabs), gaps
   views/parent/         shared (helpers, message dialog), home, results, progress
   demo.js               simulated OCR delay and the "Shortcuts" menu
   app.js                app shell (demo bar, navigation, page)
 tests/
   store.test.js         plays the whole story through the store
+  e2e-student.js        browser test of the student view
+  e2e-teacher.js        browser test of the teacher view
+  e2e-parent.js         browser test of the parent view
 ```
-
-## Tests
-
-With Node.js installed: `node tests/store.test.js` (checks the full story and all six rules).
-
-## Progress
-
-- [x] Part 1 · Shared state and student view
-- [x] Part 2 · Teacher view
-- [x] Part 3 · Parent view
 
 ## AI use
 
