@@ -10,11 +10,17 @@ const ID = 'maths-fractions-omar';
 S.init(); A.reset();
 
 console.log('\nStudent uploads');
-ok(V.student('omar').toUpload.length === 1, 'Omar has one exam to upload');
+ok(V.student('omar').toUpload.map(x => x.templateId).join() === 'maths-fractions,deutsch-mein-tag', 'Omar has two exams to upload (Maths and German)');
+ok(V.student('omar').notifications.length === 2 && V.student('omar').notifications.every(n => !n.read), 'Omar starts with 2 unread messages (English results, practice)');
+ok(V.student('omar').practice.length === 1 && V.parent('ahmad').plans.length === 1 && S.state.plans.length === 1, 'class practice is student-only: no support plan is added');
 ok(A.submitExam('omar', 'maths-fractions', 3).ok, 'submit works');
 ok(V.student('omar').exams[0].status === 'Sent', 'student sees "Sent"');
 ok(V.parent('ahmad').exams[0].status === 'Teacher checking' && V.parent('ahmad').exams[0].results === null, 'R1: parent sees "Teacher checking" and no grade');
 ok(V.teacher().notifications[0].title.includes('Omar Khaled uploaded'), 'teacher is notified of the upload');
+ok(V.student('omar').notifications[0].title === 'Your Maths exam arrived' && !V.student('omar').notifications[0].read, 'student gets one "exam arrived" message');
+A.submitExam('omar', 'maths-fractions', 3);
+ok(V.student('omar').notifications.filter(n => n.title === 'Your Maths exam arrived').length === 1, 'repeating the upload does not duplicate it');
+ok(A.markNotificationRead(V.student('omar').notifications[0].id).ok && V.student('omar').notifications[0].read, 'opening it marks it read');
 ok(A.runOCR(ID).ok && V.student('omar').exams[0].status === 'Read', 'after OCR the student sees "Read"');
 
 console.log('\nTeacher verifies text (R2)');
@@ -102,10 +108,17 @@ A.resolveWord('deutsch-mein-tag-lina', 1, 'Straße'); A.resolveWord('deutsch-mei
 ok(A.confirmText('deutsch-mein-tag-lina').ok, 'German text confirmed with ß and umlauts');
 ok(Object.values(V.exam('deutsch-mein-tag-lina').marks).reduce((s, m) => s + m.ai, 0) === 12, 'German exam graded 12 / 12');
 
+console.log('\nOmar uploads his German exam');
+ok(A.submitExam('omar', 'deutsch-mein-tag', 1).ok, 'German upload works through the normal action');
+ok(V.student('omar').exams.find(e => e.examId === 'deutsch-mein-tag-omar').status === 'Sent' && V.student('omar').notifications[0].title === 'Your Deutsch exam arrived', 'student sees "Sent" and the arrival message');
+ok(V.teacher().rows.some(r => r.examId === 'deutsch-mein-tag-omar' && r.status === 'To review'), 'teacher queue shows Omar\'s German exam');
+ok(V.parent('ahmad').exams.some(e => e.examId === 'deutsch-mein-tag-omar' && e.status === 'Teacher checking' && e.results === null), 'R1: parent sees it without a grade');
+ok(A.runOCR('deutsch-mein-tag-omar').ok && V.student('omar').exams.find(e => e.examId === 'deutsch-mein-tag-omar').status === 'Read', 'it stays at "Read" until the teacher acts');
+
 console.log('\nUndo and reset');
 ok(A.undo().ok, 'undo works');
 ok(A.decideClassFlag('f-youssef', 'suggested').ok, "undo a class flag decision");
-A.reset(); ok(Object.keys(S.state.exams).join() === 'deutsch-mein-tag-lina' && V.student('omar').toUpload.length === 1, 'reset restores the starting demo');
+A.reset(); ok(Object.keys(S.state.exams).join() === 'deutsch-mein-tag-lina' && V.student('omar').toUpload.length === 2 && V.student('omar').notifications.length === 2, 'reset restores the starting demo');
 
 console.log('\n' + pass + ' passed, ' + failN + ' failed');
 process.exit(failN ? 1 : 0);
