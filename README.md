@@ -5,7 +5,8 @@ CSEN 909 Human Computer Interaction, Winter 2026, German University in Cairo · 
 (Yahia Hany Khattab · Youssef Hesham · Samer Eyad Waly · Kerollos Mohsen · Islam Hatem)
 
 **Live demo:** https://yahiakhattab.github.io/EduTech/
-**Repository:** https://github.com/YahiaKhattab/EduTech
+
+**Penpot Design:** https://design.penpot.app/?screen=viewer&file-id=c6f51e89-5d00-81ce-8008-e1653d53bcd1&page-id=c6f51e89-5d00-81ce-8008-e1653d53bcd2&section=interactions&index=0&share-id=5820d1cc-4d24-4b1d-aab3-5da24cbee0c7
 
 This is the optional coded front-end for Milestone 3. It follows our high-fidelity prototype (Penpot) screen by screen. 
 
@@ -28,7 +29,7 @@ Use the dark **Demo** bar at the top to switch role (Student / Teacher / Parent)
   4. **Correction Impact Flags (our unique feature):** correcting text after grading marks every mark, weakness and red flag built on it as *Re-check*.
   5. The note to the student is locked until all re-checks are resolved.
   6. Dismissing a red flag, or keeping an old mark, needs a reason.
-- **OCR and AI are simulated**, as the project brief allows. Each answer has a fixed OCR reading, and the "AI" looks up a mark and feedback for the text it receives. That is why correcting a misread really changes the AI's suggestion.
+- **OCR and AI are simulated**. Each answer has a fixed OCR reading, and the "AI" looks up a mark and feedback for the text it receives. That is why correcting a misread really changes the AI's suggestion.
 
 ## Demo story
 
@@ -62,7 +63,7 @@ Omar (Grade 4) uploads his Maths exam *Fractions and Word Problems*. The OCR mis
 4. **Message Mrs. Sherin** (from Home or from an exam). As **Teacher**, the message appears on Home with a **Reply** button. The reply shows up in the parent's updates and opens the conversation.
 5. **Progress**: grades over time, weak spots (still practising / solved) and the support plans Mrs. Sherin shared.
 
-The **Shortcuts** menu in the demo bar jumps Omar's Maths exam to the next stage, using the same actions as the screens. It is handy when recording the video.
+The **Shortcuts** menu in the demo bar jumps Omar's Maths exam to the next stage, using the same actions as the screens.
 
 ## Testing
 
@@ -108,7 +109,7 @@ No build step or server settings are needed: all paths are relative, and the pag
 ```
 index.html              loads everything in order
 css/
-  tokens.css            colours, type, spacing (same as the design system)
+  tokens.css            colours, type, spacing 
   base.css              page layout, demo bar, navigation
   components.css        buttons, chips, cards, fields, dialogs, toasts
   student.css           student screens (shared pieces also used by the parent view)
@@ -130,7 +131,3 @@ tests/
   e2e-teacher.js        browser test of the teacher view
   e2e-parent.js         browser test of the parent view
 ```
-
-## AI use
-
-This code was written with the help of Claude (Anthropic), following our own Milestone 2 research and Milestone 3 prototype. The chat history is included in our submission as the brief requires.
